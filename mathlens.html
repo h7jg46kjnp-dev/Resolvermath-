@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>MathLens</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080810;
+    --card: #10101a;
+    --border: #1e1e2e;
+    --green: #5aaa6a;
+    --green-dim: #2a4a2a;
+    --blue: #5a8aaa;
+    --text: #e0dcd4;
+    --muted: #666678;
+    --accent: #8de8b0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    padding: 0 16px 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  header {
+    width: 100%;
+    max-width: 500px;
+    padding-top: 44px;
+    margin-bottom: 6px;
+  }
+  .label {
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    color: var(--green);
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--green) 0%, transparent 100%);
+    opacity: 0.25;
+  }
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(26px, 7vw, 38px);
+    font-weight: 400;
+    font-style: italic;
+    line-height: 1.2;
+    margin: 10px 0 4px;
+    color: #f0ece4;
+  }
+  .sub {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  /* API KEY SETUP */
+  #setup {
+    width: 100%;
+    max-width: 500px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px 24px;
+    margin-top: 24px;
+  }
+  #setup h2 {
+    font-family: 'Playfair Display', serif;
+    font-weight: 400;
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: #ddd;
+  }
+  #setup p {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 18px;
+  }
+  input[type="text"], input[type="password"] {
+    width: 100%;
+    background: #08080f;
+    border: 1px solid #2a2a3a;
+    border-radius: 8px;
+    padding: 13px 14px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    outline: none;
+    margin-bottom: 12px;
+    transition: border-color 0.2s;
+  }
+  input:focus { border-color: var(--green); }
+
+  /* CARD */
+  .card {
+    width: 100%;
+    max-width: 500px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin-top: 24px;
+    overflow: hidden;
+  }
+
+  /* BUTTONS */
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 14px 20px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    transition: opacity 0.2s, transform 0.1s;
+    text-align: center;
+  }
+  .btn:active { transform: scale(0.98); opacity: 0.85; }
+  .btn-green { background: var(--green-dim); border-color: #3a6a3a; color: #c0e8c0; }
+  .btn-blue  { background: #1a2a3a; border-color: #2a4a6a; color: #a0c8e8; }
+  .btn-red   { background: #2a1a1a; border-color: #4a2a2a; color: #e8a0a0; }
+  .btn-dark  { background: #181820; border-color: #2a2a38; color: #aaa; }
+
+  /* IDLE STATE */
+  .idle-body { padding: 36px 28px; text-align: center; }
+  .icon-wrap {
+    width: 88px; height: 88px;
+    margin: 0 auto 22px;
+    background: linear-gradient(135deg, #1a241a, #0e180e);
+    border: 1px solid #2a4a2a;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px;
+  }
+  .idle-body p { font-size: 12px; color: var(--muted); line-height: 1.8; margin-bottom: 24px; }
+  .divider { margin: 12px 0; color: #333; font-size: 11px; }
+
+  /* PREVIEW */
+  #video { width: 100%; display: block; max-height: 360px; object-fit: cover; background: #000; }
+  .cam-controls { padding: 14px 20px; display: flex; gap: 10px; }
+  .cam-controls .btn { flex: 1; }
+  .cam-cancel { flex: 0 0 auto !important; width: auto !important; padding: 14px 18px !important; }
+
+  /* SOLVING */
+  .solving-body { padding: 32px 28px; text-align: center; }
+  .preview-img { width: 100%; border-radius: 8px; margin-bottom: 18px; max-height: 200px; object-fit: contain; }
+  .dots { display: flex; justify-content: center; gap: 7px; margin-bottom: 14px; }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+    animation: pulse 1.2s infinite;
+  }
+  .dot:nth-child(2) { animation-delay: 0.4s; }
+  .dot:nth-child(3) { animation-delay: 0.8s; }
+  @keyframes pulse { 0%,100%{opacity:.15} 50%{opacity:1} }
+  .solving-body p { font-size: 12px; color: var(--muted); }
+
+  /* RESULT */
+  .result-body { padding: 24px 24px 20px; }
+  .badge {
+    display: inline-block;
+    font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--green); background: #1a2a1a; border: 1px solid #2a4a2a;
+    border-radius: 20px; padding: 3px 10px; margin-bottom: 14px;
+  }
+  .problem-box {
+    background: #0f0f1c; border-radius: 10px; padding: 14px 16px;
+    border-left: 3px solid #2a2a4a; margin-bottom: 12px;
+  }
+  .box-label { font-size: 9px; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 6px; }
+  .problem-text { font-family: 'Playfair Display', serif; font-style: italic; color: #ccc; font-size: 15px; line-height: 1.5; }
+  .answer-box {
+    background: linear-gradient(135deg, #0f1f0f, #0a150a);
+    border: 1px solid #3a5a3a; border-radius: 12px; padding: 18px 20px; margin-bottom: 14px;
+  }
+  .answer-val {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px; font-weight: 700; color: var(--accent); letter-spacing: -0.01em;
+  }
+  .explanation-box {
+    background: #0c0c16; border: 1px solid #1e1e2e; border-radius: 10px;
+    padding: 16px; margin-bottom: 14px;
+    font-size: 12px; color: #bbb; line-height: 1.85; white-space: pre-wrap;
+  }
+  .not-found { text-align: center; color: #e87070; font-size: 13px; padding: 10px 0; }
+  .gap { margin-bottom: 10px; }
+
+  /* ERROR */
+  .error-msg { color: #e87070; font-size: 12px; margin-top: 12px; text-align: center; }
+
+  /* FOOTER */
+  .info-card {
+    width: 100%; max-width: 500px;
+    background: #0a0a14; border: 1px solid #161626;
+    border-radius: 12px; padding: 18px 20px; margin-top: 24px;
+  }
+  .info-card .label { margin-bottom: 10px; }
+  .info-row { margin-bottom: 8px; }
+  .info-row strong { font-size: 11px; color: #ccc; display: block; margin-bottom: 2px; }
+  .info-row span { font-size: 11px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="label">∑ MathLens</div>
+  <h1>Resuelve cualquier<br>problema matemático</h1>
+  <p class="sub">Fotografía · Obtén respuesta · Aprende si quieres</p>
+</header>
+
+<!-- API KEY SETUP -->
+<div id="setup" class="card" style="border-color:#2a2a1a;">
+  <h2>🔑 Tu API Key</h2>
+  <p>Pega aquí tu clave de Anthropic.<br>Se guarda solo en tu dispositivo, nunca sale a ningún servidor.</p>
+  <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." autocomplete="off" spellcheck="false">
+  <button class="btn btn-green" onclick="saveKey()">Guardar y continuar →</button>
+  <p id="keyError" class="error-msg" style="display:none"></p>
+</div>
+
+<!-- MAIN APP (hidden until key saved) -->
+<div id="app" style="display:none; width:100%; max-width:500px;">
+
+  <!-- IDLE -->
+  <div id="stateIdle" class="card">
+    <div class="idle-body">
+      <div class="icon-wrap">📐</div>
+      <p>Fotografía una ecuación, ejercicio<br>o problema de texto.</p>
+      <button class="btn btn-green" onclick="startCamera()">📷 Usar cámara</button>
+      <div class="divider">— o —</div>
+      <button class="btn btn-blue" onclick="document.getElementById('fileInput').click()">🖼 Subir desde galería</button>
+      <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleFile(event)">
+      <p id="idleError" class="error-msg" style="display:none"></p>
+    </div>
+  </div>
+
+  <!-- CAMERA PREVIEW -->
+  <div id="statePreview" class="card" style="display:none">
+    <video id="video" autoplay playsinline muted></video>
+    <div class="cam-controls">
+      <button class="btn btn-green" onclick="capture()">📸 Capturar</button>
+      <button class="btn btn-red cam-cancel" onclick="cancelCamera()">✕</button>
+    </div>
+  </div>
+
+  <!-- SOLVING -->
+  <div id="stateSolving" class="card" style="display:none">
+    <div class="solving-body">
+      <img id="solvingImg" class="preview-img" src="" alt="">
+      <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      <p>Analizando el problema…</p>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="stateResult" class="card" style="display:none">
+    <div class="result-body">
+      <img id="resultImg" class="preview-img" src="" alt="" style="opacity:0.8">
+      <div id="resultContent"></div>
+      <div id="explainSection"></div>
+      <div class="gap"></div>
+      <button class="btn btn-dark" onclick="reset()">🔁 Nuevo problema</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- INFO -->
+<div class="info-card" id="infoCard" style="display:none">
+  <div class="label">Seguridad</div>
+  <div class="info-row">
+    <strong>¿Dónde está mi API key?</strong>
+    <span>Solo en tu navegador (localStorage). Nunca se envía a ningún servidor excepto directamente a Anthropic.</span>
+  </div>
+  <div class="info-row">
+    <strong>¿Cuánto cuesta?</strong>
+    <span>Anthropic cobra por uso. Una foto analizada cuesta fracciones de centavo. Hay créditos gratuitos iniciales.</span>
+  </div>
+  <button class="btn btn-red" style="margin-top:14px; font-size:11px" onclick="clearKey()">Borrar API key</button>
+</div>
+
+<canvas id="canvas" style="display:none"></canvas>
+
+<script>
+let mediaStream = null;
+let capturedBase64 = null;
+let currentResult = null;
+
+// ─── KEY MANAGEMENT ───────────────────────────────────────────
+function saveKey() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key.startsWith('sk-ant-')) {
+    showError('keyError', 'La clave debe empezar con sk-ant-');
+    return;
+  }
+  localStorage.setItem('mathlens_key', key);
+  showApp();
+}
+
+function getKey() {
+  return localStorage.getItem('mathlens_key') || '';
+}
+
+function clearKey() {
+  localStorage.removeItem('mathlens_key');
+  location.reload();
+}
+
+function showApp() {
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('infoCard').style.display = 'block';
+  showState('Idle');
+}
+
+window.onload = () => {
+  if (getKey()) showApp();
+};
+
+// ─── STATE MACHINE ────────────────────────────────────────────
+function showState(name) {
+  ['Idle','Preview','Solving','Result'].forEach(s => {
+    document.getElementById('state'+s).style.display = s === name ? 'block' : 'none';
+  });
+}
+
+// ─── CAMERA ───────────────────────────────────────────────────
+async function startCamera() {
+  hideError('idleError');
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+    document.getElementById('video').srcObject = mediaStream;
+    showState('Preview');
+  } catch(e) {
+    showError('idleError', 'No se pudo acceder a la cámara. Usa "Subir imagen".');
+  }
+}
+
+function stopCamera() {
+  if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+}
+
+function cancelCamera() {
+  stopCamera();
+  showState('Idle');
+}
+
+function capture() {
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+  stopCamera();
+  processImage(dataUrl);
+}
+
+function handleFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => processImage(ev.target.result);
+  reader.readAsDataURL(file);
+  e.target.value = '';
+}
+
+// ─── PROCESS ──────────────────────────────────────────────────
+function processImage(dataUrl) {
+  capturedBase64 = dataUrl.split(',')[1];
+  document.getElementById('solvingImg').src = dataUrl;
+  showState('Solving');
+  solve(capturedBase64, dataUrl);
+}
+
+async function solve(b64, dataUrl) {
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': getKey(),
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } },
+            { type: 'text', text: 'Analiza esta imagen. Si contiene un problema matemático responde SOLO con este JSON sin markdown ni backticks:\n{"found":true,"problem":"el problema","answer":"la respuesta final","type":"tipo (aritmética/álgebra/geometría etc)"}\nSi NO hay problema matemático:\n{"found":false}' }
+          ]
+        }]
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || 'Error de API');
+    }
+
+    const data = await res.json();
+    const text = data.content.map(b => b.text || '').join('');
+    const clean = text.replace(/```json|```/g, '').trim();
+    currentResult = JSON.parse(clean);
+    showResult(dataUrl);
+
+  } catch(e) {
+    showState('Idle');
+    showError('idleError', 'Error: ' + e.message);
+  }
+}
+
+function showResult(dataUrl) {
+  document.getElementById('resultImg').src = dataUrl;
+  const content = document.getElementById('resultContent');
+  const explainSection = document.getElementById('explainSection');
+  explainSection.innerHTML = '';
+
+  if (!currentResult.found) {
+    content.innerHTML = '<p class="not-found">⚠️ No se detectó ningún problema matemático.</p>';
+  } else {
+    content.innerHTML = `
+      <span class="badge">${currentResult.type}</span>
+      <div class="problem-box">
+        <div class="box-label">Problema detectado</div>
+        <div class="problem-text">${escHtml(currentResult.problem)}</div>
+      </div>
+      <div class="answer-box">
+        <div class="box-label">Respuesta</div>
+        <div class="answer-val">${escHtml(currentResult.answer)}</div>
+      </div>
+    `;
+    explainSection.innerHTML = `
+      <button class="btn btn-blue gap" id="explainBtn" onclick="explainIt()">
+        📖 Explicar paso a paso
+      </button>
+    `;
+  }
+  showState('Result');
+}
+
+async function explainIt() {
+  document.getElementById('explainBtn').textContent = 'Generando explicación…';
+  document.getElementById('explainBtn').disabled = true;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': getKey(),
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: capturedBase64 } },
+            { type: 'text', text: `Explica paso a paso cómo resolver este problema: ${currentResult.problem}. Sé claro y usa numeración (1. 2. 3...).` }
+          ]
+        }]
+      })
+    });
+
+    const data = await res.json();
+    const text = data.content.map(b => b.text || '').join('');
+    document.getElementById('explainSection').innerHTML = `
+      <div class="explanation-box">${escHtml(text)}</div>
+    `;
+  } catch(e) {
+    document.getElementById('explainSection').innerHTML = `<p class="error-msg">Error al generar explicación.</p>`;
+  }
+}
+
+function reset() {
+  capturedBase64 = null;
+  currentResult = null;
+  showState('Idle');
+}
+
+// ─── UTILS ────────────────────────────────────────────────────
+function showError(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function hideError(id) {
+  document.getElementById(id).style.display = 'none';
+}
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>
